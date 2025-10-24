@@ -1,6 +1,7 @@
 -- 20251004_schedule_slow_query_sampler.sql
 -- Schedule slow query sampler to run daily at 2 AM UTC
 -- PREREQUISITE: Enable pg_cron extension in Supabase Dashboard → Database → Extensions
+-- PREREQUISITE: Set SUPABASE_URL and SERVICE_ROLE_KEY as Supabase secrets
 
 -- Remove existing job if it exists
 SELECT cron.unschedule('slow-query-sampler');
@@ -12,8 +13,11 @@ SELECT cron.schedule(
   $$
   SELECT
     net.http_post(
-      url := 'https://jelbrfbhwwcosmuckjqm.supabase.co/functions/v1/slow-query-sampler',
-      headers := '{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImplbGJyZmJod3djb3NtdWNranFtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1OTIxODg0MCwiZXhwIjoyMDc0Nzk0ODQwfQ.gg7qxC5QxJHt91YJwPqtiuFgIuv4KSfUgeFjXe7s9po"}'::jsonb,
+      url := current_setting('request.env.SUPABASE_URL', true) || '/functions/v1/slow-query-sampler',
+      headers := jsonb_build_object(
+        'Content-Type', 'application/json',
+        'Authorization', 'Bearer ' || current_setting('request.env.SUPABASE_SERVICE_ROLE_KEY', true)
+      ),
       body := '{}'::jsonb
     ) AS request_id;
   $$
